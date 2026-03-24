@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user-specific study data and preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "level": { "type": "number" },
+        "xp": { "type": "number" },
+        "streak": { "type": "number" }
+      },
+      "required": ["uid", "email"]
+    },
+    "StudyTask": {
+      "title": "Study Task",
+      "description": "A task assigned to the user's study plan",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "title": { "type": "string" },
+        "subject": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "title", "priority"]
+    },
+    "StudySession": {
+      "title": "Study Session",
+      "description": "A recorded focus session",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "subject": { "type": "string" },
+        "duration": { "type": "number" },
+        "focusScore": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "duration", "focusScore"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "StudyTask",
+      "description": "User-specific study tasks"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "StudySession",
+      "description": "User focus session history"
+    }
+  }
+}

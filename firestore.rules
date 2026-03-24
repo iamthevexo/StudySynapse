@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}
+    // Fields: uid, displayName, email, level, xp, streak
+    //
+    // Collection: /users/{userId}/tasks/{taskId}
+    // Fields: uid, title, subject, deadline, priority, completed, createdAt
+    //
+    // Collection: /users/{userId}/sessions/{sessionId}
+    // Fields: uid, subject, duration, focusScore, timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             (data.displayName is string || !('displayName' in data)) &&
+             (data.level is number || !('level' in data)) &&
+             (data.xp is number || !('xp' in data)) &&
+             (data.streak is number || !('streak' in data));
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['uid', 'title', 'priority']) &&
+             data.uid == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.priority in ['low', 'medium', 'high'] &&
+             (data.completed is bool || !('completed' in data));
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['uid', 'duration', 'focusScore']) &&
+             data.uid == request.auth.uid &&
+             data.duration is number && data.duration > 0 &&
+             data.focusScore is number && data.focusScore >= 0 && data.focusScore <= 100;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTask(request.resource.data);
+        allow update: if isOwner(userId) && isValidTask(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSession(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
